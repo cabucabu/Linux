@@ -1,0 +1,120 @@
+#!/bin/bash
+. /home/$(whoami)/.bash_profile
+
+############ PATH ############
+CONFIG="/home/huawei/program/scripts/2G/HUAWEI_XML_GETSRC/JAR/HWI_FTP_CONFIG.ip"
+PATH_SCRIPT="/home/huawei/program/scripts/2G/HUAWEI_CSV_GETSRC/PM/60/"
+RUN_SCRIPT=$(basename ${0} | sed 's/Manual.//g')
+CRON=${0}
+DETAIL=""
+IP=""
+USER=""
+PASSWORD=""
+PATH_SOURCE=""
+listDate=""
+
+############ HELP ############
+HELP()
+{
+	date_now=$(date "+%Y%m%d%H");
+	date_after=$(date --date="-3 day -120 minutes" "+%Y%m%d%H");
+	run_date=$(echo ${date_now} | sed -e "s/-/\ /g")
+	echo " "
+	echo "---------------------- How to use ----------------------"
+	echo " FixDateTime Mode [ *.cron ] DateTimeStart[+%Y%m%d%H] DateTimeStop[+%Y%m%d%H] [TYPE[PMS_GSM_GCELL_60,PMS_GSM_TRX_60]]"
+	echo " Example --> ${PATH_SCRIPT}${CRON}" ${date_after} ${date_now}
+	echo " Example --> ${PATH_SCRIPT}${CRON}" ${date_after} ${date_now} PMS_GSM_GCELL_60
+	echo "--------------------------------------------------------"
+	echo " "
+}
+
+CHECK_LENGTH () {
+	#echo "CHECK_LENGTH"
+	startLength=`lftp << EOF
+			open sftp://${IP}
+			user ${USER} ${PASSWORD}
+			ls -l ${PATH_SOURCE} | head -3 | tail -1 | xargs | cut -d'\ ' -f'9' | cut -d'_' -f'5' | cut -d'.' -f'1' | cut -c1-10
+			bye	
+			EOF`
+	stopLength=`lftp << EOF
+			open sftp://${IP}
+			user ${USER} ${PASSWORD}
+			ls -l ${PATH_SOURCE} | tail -1 | xargs | cut -d'\ ' -f'9' | cut -d'_' -f'5' | cut -d'.' -f'1' | cut -c1-10
+			bye	
+			EOF`
+	
+	if [ ${DATE_START} -lt ${startLength} ] 
+	then
+		echo "[ERROR] : Date Start [${DATE_START}] much > ${startLength}"
+		exit 0
+	elif [ ${DATE_STOP} -gt ${stopLength} ]
+	then
+		echo "[ERROR] : Date end [${DATE_STOP}] much < ${stopLength}"
+		exit 0
+	fi
+}
+	
+SET_INIT () {
+	dateStart=${1}
+	dateStop=${2}
+	type=${3}
+	DETAIL=`cat ${CONFIG} | grep ${type}`
+	IP=$(echo ${DETAIL} | cut -d'|' -f7)
+	USER=$(echo ${DETAIL} | cut -d'|' -f8)
+	PASSWORD=$(echo ${DETAIL} | cut -d'|' -f9)
+	PATH_SOURCE=$(echo ${DETAIL} | cut -d'|' -f10)
+	CHECK_LENGTH
+}
+
+GET_LIST_FILE_NAME () {
+	listTmp=`lftp << EOF
+			open sftp://${IP}
+			user ${USER} ${PASSWORD}
+			ls -l ${PATH_SOURCE} | sed -n '/${DATE_START}/,/${DATE_STOP}/{p}' 
+			bye	
+			EOF`
+	i=0
+	echo ":: List Date ::"
+	for tmp in ${listTmp} ; do 
+		if [[ ${tmp} == *".zip" ]]; then
+			listDate[${i}]=$(echo ${tmp} | cut -d'_' -f5 | cut -c1-10)
+			echo ".. ${listDate[${i}]} .."
+			let "i++"
+		fi
+	done
+	#echo ${listDate[@]}
+}
+
+############ RUN_MODE ############
+cd ${PATH_SCRIPT}
+echo "================"
+echo "==== Manual ===="
+echo "================"
+if (( ${#} == 2 )); then
+		DATE_START=${1}
+        DATE_STOP=${2}
+        TYPE_RUN="PMS_GSM_GCELL_60 PMS_GSM_TRX_60"
+		SET_INIT ${DATE_START} ${DATE_STOP} ${TYPE_RUN}
+		GET_LIST_FILE_NAME
+        for item in ${TYPE_RUN}; do 
+			for DATE_RUN in ${listDate[@]}
+			do	
+				${PATH_SCRIPT}${RUN_SCRIPT} "${DATE_RUN}" "60" "${item}"
+			done
+        done
+elif ((${#} == 3)); then
+        DATE_START=${1}
+        DATE_STOP=${2}
+        TYPE_RUN=${3}
+		SET_INIT ${DATE_START} ${DATE_STOP} ${TYPE_RUN}
+		GET_LIST_FILE_NAME
+        for DATE_RUN in ${listDate[@]}
+		do	
+			${PATH_SCRIPT}${RUN_SCRIPT} "${DATE_RUN}" "60" "${TYPE_RUN}"
+		done
+else
+	HELP
+fi
+
+exit 0
+

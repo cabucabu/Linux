@@ -1,0 +1,41 @@
+#!/bin/bash
+. /home/$(whoami)/.bash_profile
+
+############ PATH ############
+PATH_SCRIPT="/home/huawei/program/scripts/2G/HUAWEI_CSV_GETSRC/PM/60"
+NAME_SCRIPT=$(basename ${0}|sed 's/\.cron/\.sh/g')
+
+############ RUN_MODE ############
+cd ${PATH_SCRIPT}
+if (( ${#} == 0 )); then
+	#Auto Process
+        DATE_RUN=$(date --date="-60 minutes" "+%Y%m%d%H")
+        PERD_RUN="60"
+        TYPE_RUN="PMS_GSM_GCELL_60 PMS_GSM_TRX_60"
+       
+        for item in ${TYPE_RUN}; do
+           ${PATH_SCRIPT}/${NAME_SCRIPT} "A" "${DATE_RUN}" "${PERD_RUN}" "${item}"
+        done
+elif ((${#} == 3)); then
+	#Manual Process
+        DATE_RUN=${1}
+        PERD_RUN=${2}
+        TYPE_RUN=${3}
+
+        ${PATH_SCRIPT}/${NAME_SCRIPT} "M" "${DATE_RUN}" "${PERD_RUN}" "${TYPE_RUN}"
+else
+	run_date_start=$(date "+%Y%m%d%H");
+	run_date=$(echo ${run_date_start} | sed -e "s/-/\ /g")
+	echo " "
+	echo "---------------------- How to use ----------------------"
+	echo " Auto Mode [ *.cron ]"
+	echo " Example --> ${PATH_SCRIPT}/${NAME_SCRIPT}.cron"
+	echo "--------------------------------------------------------"
+	echo " Manual Mode [ *.cron Date[%Y%m%d%H%M] period[15,30,60,1440] TYPE[PMS_GSM_GCELL_60,PMS_GSM_TRX_60]"
+	echo " Example --> ${PATH_SCRIPT}/${NAME_SCRIPT}cron ${run_date} 60 PMS_GSM_GCELL_60"
+	echo "--------------------------------------------------------"
+	echo " "
+fi
+
+exit 0
+

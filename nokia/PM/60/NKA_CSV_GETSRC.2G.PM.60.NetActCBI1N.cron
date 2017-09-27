@@ -1,0 +1,85 @@
+#!/bin/bash
+
+. /home/$(whoami)/.bash_profile
+
+
+############ FUNCTION ############
+SET_INIT () {
+	dateStart=${1}
+	dateStop=${2}
+	type=${3}
+	DETAIL=`cat ${CONFIG} | grep ${type}`
+	IP=$(echo ${DETAIL} | cut -d'|' -f7)
+	USER=$(echo ${DETAIL} | cut -d'|' -f8)
+	PASSWORD=$(echo ${DETAIL} | cut -d'|' -f9)
+	PATH_SOURCE=$(echo ${DETAIL} | cut -d'|' -f10)
+	CHECK_LENGTH
+}
+
+CHECK_LENGTH () 
+{
+	startLength=`lftp 
+			open sftp://${IP}
+			user ${USER} ${PASSWORD}
+			ls -l ${PATH_SOURCE} | head -3 | tail -1 | xargs | cut -d'\ ' -f'9' | cut -d'_' -f'5' | cut -d'.' -f'1' | cut -c1-10
+			bye`
+	stopLength=`lftp 
+			open sftp://${IP}
+			user ${USER} ${PASSWORD}
+			ls -l ${PATH_SOURCE} | tail -1 | xargs | cut -d'\ ' -f'9' | cut -d'_' -f'5' | cut -d'.' -f'1' | cut -c1-10
+			bye`
+	if [ ${DATE_START} -lt ${startLength} ] 
+	then
+		echo "[ERROR] : Date Start [${DATE_START}] much > ${startLength}"
+		exit 0
+	elif [ ${DATE_STOP} -gt ${stopLength} ]
+	then
+		echo "[ERROR] : Date end [${DATE_STOP}] much < ${stopLength}"
+		exit 0
+	fi
+}
+
+############ PATH ############
+PATH_SCRIPT="/home/nokia/program/scripts/2G/NKA_CSV_GETSRC/PM/60"
+CONFIG="/home/nokia/program/scripts/2G/NKA_CSV_GETSRC/NKA_FTP_CONFIG.ip"
+NAME_SCRIPT=$(basename ${0}|sed 's/\.cron/\.sh/g')
+cd ${PATH_SCRIPT}
+IP=""
+USER=""
+PASSWORD=""
+PATH_SOURCE=""
+
+############ RUN_MODE ############
+cd ${PATH_SCRIPT}   
+chmod 755 *
+if (( ${#} == 0 )); then
+	#Auto Process
+        DATE_RUN=$(date --date="-15 minutes" "+%Y%m%d%H")
+        ${PATH_SCRIPT}"/"${NAME_SCRIPT} "A" "${DATE_RUN}"
+elif ((${#} == 1)); then
+	#Manual Process
+        DATE_RUN=${1}
+		${PATH_SCRIPT}"/"${NAME_SCRIPT} "M" "${DATE_RUN}"
+elif ((${#} == 3)); then
+	#Manual Process
+        DATE_START=${1}
+        DATE_END=${2}
+		
+        ${PATH_SCRIPT}"/"${NAME_SCRIPT} "M" "${DATE_RUN}"
+else
+    DATE_START=$(date --date="-120 minutes" "+%Y%m%d%H")
+    DATE_END=$(date --date="-60 minutes" "+%Y%m%d%H")
+	run_date=$(echo ${run_date_start} | sed -e "s/-/\ /g")
+	echo " "
+	echo "---------------------- How to use ----------------------"
+	echo " Auto Mode [ *.cron ]"
+	echo " Example --> ${PATH_SCRIPT}/$(basename ${0})"
+	echo "--------------------------------------------------------"
+	echo " Manual Mode [ *.cron DateStart[%Y%m%d%H] DATE_START[%Y%m%d%H] DATE_END[%Y%m%d%H]"
+	echo " Example --> ${PATH_SCRIPT}/$(basename ${0}) ${DATE_START} ${DATE_END}"
+	echo "--------------------------------------------------------"
+	echo " "
+fi
+
+exit 0
+

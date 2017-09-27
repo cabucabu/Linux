@@ -1,0 +1,13 @@
+#!/bin/bash
+. /home/$(whoami)/.bash_profile
+
+############ PATH ############
+PATH_SCRIPT="/home/huawei/program/scripts/2G/HUAWEI_CSV_GETSRC/CM/1440/"
+
+############ RUN_MODE ############
+cd ${PATH_SCRIPT}
+HUAWEI_CSV_GETSRC.2G.CM.1440.U2000RANBPL1H.cron
+HUAWEI_CSV_GETSRC.2G.CM.1440.U2000RANTLS1H.cron
+HUAWEI_CSV_GETSRC.CM.2G.1440.1.U2000PRSCMI1H.IP1.cron
+HUAWEI_CSV_GETSRC.CM.2G.1440.1.U2000PRSPLK1H.IP1.cron
+

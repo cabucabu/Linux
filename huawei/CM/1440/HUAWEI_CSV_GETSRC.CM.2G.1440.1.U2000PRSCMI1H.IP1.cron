@@ -1,0 +1,39 @@
+#!/bin/bash
+. /home/$(whoami)/.bash_profile
+
+############ PATH ############
+PATH_SCRIPT="/home/huawei/program/scripts/2G/HUAWEI_CSV_GETSRC/CM/1440/"
+NAME_SCRIPT=$(basename ${0}|sed 's/\.cron/\.sh/g')
+
+############ RUN_MODE ############
+cd ${PATH_SCRIPT}
+if (( ${#} == 0 )); then
+	#Auto Process
+        PERD_RUN="1440"
+        DATE_RUN=$(date "+%Y%m%d")
+       
+        ${PATH_SCRIPT}${NAME_SCRIPT} "A" "${PERD_RUN}" "${DATE_RUN}" 
+     
+elif ((${#} == 3)); then
+	#Manual Process
+        PERD_RUN=${1}
+        DATE_RUN=${2}
+        TABLE_NAME=${3}
+
+        ${PATH_SCRIPT}${NAME_SCRIPT} "M" "${PERD_RUN}" "${DATE_RUN}" "${TABLE_NAME}"
+else
+	run_date_start=$(date "+%Y%m%d");
+	run_date=$(echo ${run_date_start} | sed -e "s/-/\ /g")
+	echo " "
+	echo "---------------------- How to use ----------------------"
+	echo " Auto Mode [ *.cron ]"
+	echo " Example --> ${PATH_SCRIPT}$(basename ${0})"
+	echo "--------------------------------------------------------"
+	echo " Manual Mode [ *.cron DateStart[%Y%m%d] period[15,30,60,1440] DateStop[%Y%m%d] TABLE_NAME[BTS,BTSLOCGRPE,GCELL,GTRX,GTRXCHAN,GTRXDEV,....]"
+	echo " Example --> ${PATH_SCRIPT}$(basename ${0}) 1440 ${run_date} BTS"
+	echo "--------------------------------------------------------"
+	echo " "
+fi
+
+exit 0
+
